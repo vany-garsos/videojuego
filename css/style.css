@@ -1,0 +1,16 @@
+body{
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: #111;
+}
+
+canvas{
+    width: 800px;
+    height: 480px;
+    border: 3px solid white;
+    border-radius: 12px;
+    background: #87ceeb;
+}
