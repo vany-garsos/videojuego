@@ -240,7 +240,7 @@ class PantallaInicio extends Pantalla {
     );
     ctx.drawImage(
       imgTeclas,
-      this.centroImg,
+      this.centroX - imgTecla.w/2,
       imgTecla.y,
       imgTecla.w,
       imgTecla.h
