@@ -17,8 +17,11 @@ imgFondo.src = "img/fondo.jpg";
 const imgTeclas = new Image();
 imgTeclas.src = "img/teclas.png";
 
+const escudo = new Image();
+escudo.src = "img/escudo.png";
+
 /*Posicion inicial del jugador*/
-const player = { x: 80, y: 380, w: 70, h: 90, vx: 0, vy: 0 };
+const player = { x: 80, y: 380, w: 70, h: 90, vx: 0, vy: 0, onGround:true};
 
 /*posicion del boton*/
 const btn = { x: 330, y: 420, w: 130, h: 40 };
@@ -32,11 +35,14 @@ const imgTecla = { x: 0, y: 170, w: 100, h: 70 };
 let keys = {};
 let enemigos = [];
 let amigos = [];
+let escudos = [];
 let vidas = 3;
 let estado = "inicio";
 let nivel = 1;
 let velMin = 1;
 let velMax = 2;
+let inmune = false; 
+
 
 function crearEnemigo() { 
   enemigos.push({ x: aleatorio(0, 750), y: 0, w: 40, h: 40, vy: aleatorio(velMin, velMax) });
@@ -44,6 +50,10 @@ function crearEnemigo() {
 
 function crearAmigo() {
   amigos.push({ x: aleatorio(0, 750), y: 0, w: 30, h: 35, vy: aleatorio(velMin, velMax) });
+}
+
+function crearEscudo() {
+  escudos.push({ x: aleatorio(0, 750), y: 0, w: 30, h: 30, vy: aleatorio(1, 2) });
 }
 
 document.addEventListener("keydown", (e) => (keys[e.key] = true));
@@ -75,19 +85,40 @@ function update() {
   } else {
     player.vx = 0;
   }
-  player.x += player.vx;
+      if (keys["ArrowUp"] && player.onGround) {
+        player.vy = -10;
+        player.onGround = false;
+    }
+        player.x +=player.vx;
+        player.y += player.vy;
+        player.vy+=0.5;
 
-  /*muevo el enemigo*/
-  enemigos.forEach((enemigo) => (enemigo.y += enemigo.vy));
-  /*elimino al enemigo que llego abajo*/
-  enemigos = enemigos.filter((enemigo) => enemigo.y + enemigo.h < 480);
+        //saltar el personaje
 
-  /*muevo el amigo*/
-  amigos.forEach((amigo) => (amigo.y += amigo.vy));
-  /*elimino al amigo que llego abajo*/
-  amigos = amigos.filter((amigo) => amigo.y + amigo.h < 480);
+    if (player.y + player.h >475) {     
+       player.y = 475-player.h;
+       player.vy = 0;
+       player.onGround =  true;
+    }
+/*funcion para mover enemigos, amigos y escudos*/
+  function moverItem(items) {
+    items.forEach((item) => (item.y += item.vy));
+  }
 
-  if (Math.random() < 0.01) {
+  moverItem(enemigos);
+  moverItem(amigos);
+  moverItem(escudos);
+
+/*funcion para eliminar enemigos, amigos y escudos que llegan abajo*/
+  function eliminarItem(items) {
+    return items.filter((item) => item.y + item.h < 480);
+  }
+
+  eliminarItem(enemigos);
+  eliminarItem(amigos);
+  eliminarItem(escudos);
+  
+  if (Math.random() < 0.02) {
     crearEnemigo();
   }
 
@@ -95,10 +126,14 @@ function update() {
     crearAmigo();
   }
 
+  if (Math.random() < 0.0007) {
+    crearEscudo();
+  }
+
   /*si hay colision con enemigos, decrementar vidas*/
   enemigos.forEach((enemigo, indice) => {
     if (colision(player, enemigo)) {
-      if (vidas > 0) {
+      if (vidas > 0 && !inmune) {
         vidas--;
        if (vidas == 0) {
           pantallaPerder.mostrar();
@@ -115,11 +150,11 @@ function update() {
         if (vidas == 6 && nivel == 1) {
           nivel = 2;
           velMin = 2;
-          velMax = 4;
+          velMax = 3;
         } else if (vidas == 11 && nivel == 2) {
           nivel = 3;
-          velMin = 4;
-          velMax = 6;
+          velMin = 3;
+          velMax = 5;
         } if (vidas == 15) {
           pantallaGanar.mostrar();
         } 
@@ -127,6 +162,17 @@ function update() {
     }
   });
 
+  /*si hay colision con escudo, crear inmunidad por 5 segundos*/
+  escudos.forEach((escudo, indice) => {
+    if (colision(player, escudo)) {
+        inmune = true;
+        setTimeout(() => {
+        inmune = false;
+      }, 5000);
+      escudos.splice(indice, 1);
+    }
+  });
+  
   function colision(player, item) {
     return (
       player.x < item.x + item.w &&
@@ -142,7 +188,19 @@ function draw() {
 
   if (imgFondo.complete) {
     ctx.drawImage(imgFondo, 0, 0, 800, 480);
+    if(inmune){
+     /*fondo transparente azuk para indicar inmunidad*/
+    ctx.fillStyle = "rgba(184, 189, 236, 0.5)";
+    ctx.fillRect(0, 0, 800, 480);
+
+     /*centra el texto respectoa un punto*/
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "white";
+    ctx.font = "20px Arial";
+    ctx.fillText("Inmunidad Activa por 5 segundos", 400, 30);
   }
+}
 
   if (imgJugador.complete) {
     ctx.drawImage(imgJugador, player.x, player.y, player.w, player.h);
@@ -157,6 +215,12 @@ function draw() {
   amigos.forEach((amigo) => {
     if (imgBueno.complete) {
       ctx.drawImage(imgBueno, amigo.x, amigo.y, amigo.w, amigo.h);
+    }
+  });
+
+  escudos.forEach((escudoItem) => {
+    if (escudo.complete) {
+      ctx.drawImage(escudo, escudoItem.x, escudoItem.y, escudoItem.w, escudoItem.h);
     }
   });
 
@@ -234,7 +298,7 @@ class PantallaInicio extends Pantalla {
       90
     );
     ctx.fillText(
-      "Usa las flechas del taclado para moverte de izquierda a derecha",
+      "Usa las flechas del teclado para moverte de izquierda a derecha y saltar",
       this.centroX,
       130
     );
@@ -247,12 +311,12 @@ class PantallaInicio extends Pantalla {
     );
     ctx.fillText("Inicialmente tienes 3 vidas", this.centroX, 280);
     ctx.fillText(
-      "Cada vez que toques un alma maldita, perderás 1 vida",
+      "Evita tocar almas malditas o irás perdiendo vidas",
       this.centroX,
       320
     );
     ctx.fillText(
-      "Cada vez que atrapes un alma buena, ganarás 1 vida",
+      "Si tocas un escudo serás inmune por 5 segundos",
       this.centroX,
       360
     );
